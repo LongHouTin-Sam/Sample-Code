@@ -1,0 +1,357 @@
+#####portfolio b6
+#####Consider porfolios on derivatives based on 10 underlying uncorrelated assets 
+#####investigate the loss probability, which is critical to estimating VAR 
+install.packages("rootSolve")
+library(rootSolve)
+install.packages("gtools")
+library(gtools)
+rm(list=ls())
+
+set.seed(4000)
+S0<-rep(100,10)
+T<-rep(0.1,10)
+sigma<-rep(0.3,10)
+r<-rep(0.05,10)
+K<-rep(100,10)
+H<-rep(95,10)
+dt<-0.04
+#####for the cash or nothing put options
+cash<-K
+
+
+#####define a function for calculating the value of a unit of down-and-out call option (long position), under risk neutral framework
+#####notice that H<K, refers to P.579 of Options, Futures, and Other Derivatives(8 ed.) for the pricing formula of down-and-out call option.
+#####MUST take into account the situation that the call options are knocked out at time t+deltat 
+Cdo<-function(S,T,t,sigma,r,K,H){
+	lam<-(r+0.5*sigma^2)/(sigma^2)
+	y<-log((H^2)/S/K)/sigma/sqrt(T-t)+lam*sigma*sqrt(T-t)
+	cdi<-S*(H/S)^(2*lam)*pnorm(y)-K*exp(-r*(T-t))*(H/S)^(2*lam-2)*pnorm(y-sigma*sqrt(T-t))
+	
+	d1<-(log(S/K)+(r+0.5*sigma^2)*(T-t))/(sigma*sqrt(T-t))
+	d2<-d1-sigma*sqrt(T-t)
+	c<-S*pnorm(d1)-K*exp(-r*(T-t))*pnorm(d2)
+
+	value<-(c-cdi)*(S>H)
+	return(value)
+	}
+#####All the partial derivatives, thus the greeks, are evaluated at t=0
+#####Calculating the greeks of down-and-out call options on each assets
+#####Since the theoretical greeks is complecated to derive, we approximate them with the Finite Difference Method at the moment
+dS<-0.01
+  #####approximating delta of the Cdo's on each asset using FDM
+  deltacdo<-(Cdo(S0+dS,T,0,sigma,r,K,H)-Cdo(S0,T,0,sigma,r,K,H))/dS
+  #####approximating gamma of the cdo's on each asset using FDM
+  gammacdo<-(Cdo(S0+dS,T,0,sigma,r,K,H)-2*Cdo(S0,T,0,sigma,r,K,H)+Cdo(S0-dS,T,0,sigma,r,K,H))/dS/dS
+  #####approximating theta of the cdo's on each asset by the relation among theta, delta and gamma of an derivative at time 0 (OFAOD ed.10 P.393)
+  thetacdo<-r*Cdo(S0,T,0,sigma,r,K,H)-r*S0*deltacdo-0.5*sigma^2*S0^2*gammacdo
+
+
+#####define a function for caluculating the value of a cash-or-nothing put option(long position), under risk neutral framework
+Pcon<-function(S,T,t,sigma,r,K,cash){
+	d1<-(log(S/K)+(r+0.5*sigma^2)*(T-t))/sigma/sqrt(T-t)
+	d2<-d1-sigma*sqrt(T-t)
+	pcon<-cash*exp(-r*(T-t))*pnorm(-d2)
+	return(pcon)
+	}
+#####All the partial derivatives, thus the greeks, are evaluated at t=0
+#####Calculating the greeks of cash-or-nothing put options on each assets 
+d1<-(log(S0/K)+(r+0.5*sigma^2)*T)/sigma/sqrt(T)
+d2<-d1-sigma*sqrt(T)
+  #####caluculating theta of the cash or nothing put options on each asset
+  thetapcon<-r*cash*exp(-r*T)*pnorm(-d2)-cash*exp(-r*T)*dnorm(-d2)*(log(S0/K)/2/sigma*T^(-3/2)-(r-0.5*sigma^2)/2/sigma*T^(-1/2))
+  #####caluculating delta of the cash or nothing put option on each asset
+  deltapcon<-(-cash)*exp(-r*T)/S0/sigma/sqrt(T)*dnorm(-d2)
+  #####caluculating gamma of the cash or nothing put option on each asset
+  gammapcon<-(r*Pcon(S0,T,0,sigma,r,K,cash)-thetapcon-r*S0*deltapcon)*2/(sigma^2)/(S0^2)
+######Cross validate against approximated greeks using FDM
+##dS<-0.01
+##deltapconpi<-(Pcon(S0+dS,T,0,sigma,r,K,cash)-Pcon(S0,T,0,sigma,r,K,cash))/dS
+##gammapconpi<-(Pcon(S0+dS,T,0,sigma,r,K,cash)-2*Pcon(S0,T,0,sigma,r,K,cash)+Pcon(S0-dS,T,0,sigma,r,K,cash))/dS/dS
+##thetapconpi<-r*Pcon(S0,T,0,sigma,r,K,cash)-r*S0*deltapconpi-0.5*sigma^2*S0^2*gammapconpi
+#####Checked
+
+
+#####characterize b6(short 10 down-and-out calls and short certain cash-or-nothing put options on each assets to make the portfolio delta hedged)
+weightcdo<-rep(-10,10)
+weightpcon<-(-weightcdo*deltacdo)/deltapcon
+#####calculate the initial value of the portfolio (value at time 0)
+V0<-sum(weightcdo*Cdo(S0,T,0,sigma,r,K,H)+weightpcon*Pcon(S0,T,0,sigma,r,K,cash))
+V0
+#####In order to suimulate the loss, we have to be able to samples the change in asset prices(assumed to follow multivariate normal),  
+#####Hence we need to approximate the SIGMA, given the asset price are uncorrelated, SIGMA is diagonal
+sigmadum<-S0^2*exp(2*r*dt)*(exp(sigma^2*dt)-1)
+SIGMA<-diag(sigmadum,10)
+
+
+#####consider Delta-GAMMA approximation of the portfolio loss, calculating the greeks of the portfolio
+#####caluculating theta of the portfolio consisting of mix of the options on the 10 assets 
+THETA<-sum(weightcdo*thetacdo+weightpcon*thetapcon)
+#####caluculating delta of the portfolio(by assets) consisting of mix of the options on the 10 assets
+delta<-matrix(weightcdo*deltacdo+weightpcon*deltapcon,10,1)
+#####caluculating gamma of the portfolio(by pairs of assets) consisting of mix of the options on the 10 assets.
+GAMMA<-diag(weightcdo*gammacdo+weightpcon*gammapcon,10)
+#####Caluculating parameters for the Delta-Gamma approximatino on the portfolio loss
+a0=-THETA*dt
+a=-delta
+A=-1/2*GAMMA 
+
+
+#------------------------------------------------------------------------------------------------------------------------------------#
+
+
+#####
+#####step1: Express Q in diagonal form
+Ct<-t(chol(SIGMA))
+ED<-eigen(t(Ct)%*%A%*%Ct)
+U<-ED$vectors
+LAMBDA<-diag(ED$values,10)
+C<-Ct%*%U
+b<-t(C)%*%a
+#define a function to calculate Q
+Q<-function(Z){t(b)%*%Z+t(Z)%*%LAMBDA%*%Z}
+
+
+#####
+#####step2: Identify the IS distribution Z~N(thetax*B(thetax)%*%b,B(thetax)), B(thetax)=solve(I-2thetax*LAMBDA)
+###Given x, find thetax that makes E[Q]=(x-a0) under the IS chagne of measure (assume D-G approximation is exact)
+###The x is adjusted so that the loss probability is close to 1%, xstd=9 under the original distribution of Z
+vecb<-as.vector(b)
+veclambda<-diag(LAMBDA)
+xstd<-9
+x<-(a0+sum(veclambda))+xstd*sqrt(sum(vecb^2)+2*sum(veclambda^2))
+###To identify thetax, we numerically solve psipithetax=(x-a0), notice that E[Q]=psipitheta for general theta
+psipithetax<-function(thetax){
+	(thetax*vecb[1]^2*(1-thetax*veclambda[1])/(1-2*thetax*veclambda[1])^2 + veclambda[1]/(1-2*thetax*veclambda[1])
+	+thetax*vecb[2]^2*(1-thetax*veclambda[2])/(1-2*thetax*veclambda[2])^2 + veclambda[2]/(1-2*thetax*veclambda[2])
+	+thetax*vecb[3]^2*(1-thetax*veclambda[3])/(1-2*thetax*veclambda[3])^2 + veclambda[3]/(1-2*thetax*veclambda[3])
+	+thetax*vecb[4]^2*(1-thetax*veclambda[4])/(1-2*thetax*veclambda[4])^2 + veclambda[4]/(1-2*thetax*veclambda[4])
+	+thetax*vecb[5]^2*(1-thetax*veclambda[5])/(1-2*thetax*veclambda[5])^2 + veclambda[5]/(1-2*thetax*veclambda[5])
+	+thetax*vecb[6]^2*(1-thetax*veclambda[6])/(1-2*thetax*veclambda[6])^2 + veclambda[6]/(1-2*thetax*veclambda[6])
+	+thetax*vecb[7]^2*(1-thetax*veclambda[7])/(1-2*thetax*veclambda[7])^2 + veclambda[7]/(1-2*thetax*veclambda[7])
+	+thetax*vecb[8]^2*(1-thetax*veclambda[8])/(1-2*thetax*veclambda[8])^2 + veclambda[8]/(1-2*thetax*veclambda[8])
+	+thetax*vecb[9]^2*(1-thetax*veclambda[9])/(1-2*thetax*veclambda[9])^2 + veclambda[9]/(1-2*thetax*veclambda[9])
+	+thetax*vecb[10]^2*(1-thetax*veclambda[10])/(1-2*thetax*veclambda[10])^2 + veclambda[10]/(1-2*thetax*veclambda[10]))-(x-a0)
+	}
+curve(psipithetax)
+abline(h=0,v=0)
+uni<-uniroot.all(psipithetax,c(0,0.5))
+uni
+
+###choose the thetax that makes a valid change of measure
+k<-0
+for(i in 1:length(uni)){
+	if(sum(sign(1-2*uni[i]*veclambda))==length(veclambda)){
+		k<-i
+		break}
+	}
+(thetax<-uni[k])
+psipithetax(thetax)
+ax<-thetax-0.0001
+bx<-thetax+0.0001
+while(abs(psipithetax(thetax))>0.0000001){
+	thetax<-(ax+bx)/2
+	ifelse(sign(psipithetax(thetax))==sign(bx),bx<-(ax+bx)/2,ax<-(ax+bx)/2)
+	}
+thetax
+psipithetax(thetax)
+
+###identify the IS distribution
+Bthetax<-solve(diag(10)-2*thetax*LAMBDA)
+muthetax<-thetax*Bthetax%*%b
+
+###generate 5000000 samples of Q under IS change of measure, check whether E[Q] approximately equals (x-a0)
+Qsamples<-rep(0,5000000)
+for(j in 1:5000000){
+	Z<-muthetax+chol(Bthetax)%*%matrix(rnorm(10),10,1)
+	Qsamples[j]<-Q(Z)
+	}
+###check whether E[Q] approximately equals (x-a0) under the importance sampling change of measure
+mean(Qsamples)
+x-a0
+a0
+x
+thetax
+
+###display the parameters
+ SIGMA
+ THETA
+ a0
+ delta
+ a
+ GAMMA
+ A
+
+ b
+ LAMBDA
+ muthetax
+ Bthetax
+
+																								
+#-----------------------------------------------------------------------------------------------#
+
+###define a function that calculate the Loss for a generated ds (ds=C%*%Z)
+L<-function(dS){
+	Sdt<-S0+as.vector(dS)
+        Vdt<-sum(weightcdo*Cdo(Sdt,T,dt,sigma,r,K,H)+weightpcon*Pcon(Sdt,T,dt,sigma,r,K,cash))
+	return(V0-Vdt)
+	}
+###define a function that calculate the likelihood ratio for a generated Z
+likelihood<-function(Z){
+	p1<-sum((1/2)*((thetax*vecb)^2/(1-2*thetax*veclambda)-log(1-2*thetax*veclambda)))
+	p2<-thetax*Q(Z)
+	return(exp(p1-p2))
+	}
+
+#-----------------------------------------------------------------------------------------------#
+
+
+#####
+#####step3: Define k strata
+###plot the empirical CDF
+Qsamples<-sort(Qsamples,decreasing=FALSE)
+ECDFb6<-ecdf(Qsamples)
+#plot.ecdf(Qsamples)
+###mimics the quantiles of Q using the 5000000 samples of Q generated in the previous step
+stratabyQ<-rep(0,40-1)
+for(i in 1:39){stratabyQ[i]<-quantile(Qsamples,0.025*i)}
+stratabyQ
+ECDFb6(stratabyQ)
+
+###calculate the optimal alocation of samples size for each strata
+options(warn=-1)
+bins<-c(stratabyQ,.Machine$double.xmax)
+vars<-matrix(0,40,10000)
+counts<-rep(0,40)
+while(sum(counts)!=400000){
+	Z<-muthetax+chol(Bthetax)%*%matrix(rnorm(10),10,1)
+	k<-tail(binsearch(function(y) bins[y]-(Q(Z)), range=c(1, length(bins)))$where,1)
+	if(counts[k]<10000){
+		counts[k]<-counts[k]+1
+		vars[k,counts[k]]<-ifelse(L(C%*%Z)>x,1,0)*likelihood(Z)
+		} 
+	else{}
+	}
+(dumvar<-apply(vars,1,var))
+#Since we assume equiprobable strata, pj=1/k, where k is the number of strata, which is 40 in the case
+(qj<-sqrt(dumvar)/sum(sqrt(dumvar)))
+
+
+#####
+#####step4: Perform the simulation
+###define a function to generate estimates of P{L>xp} using three methods: SMC, IS, ISSQ, ISSQO
+options(warn=-1)
+run<-function(n,strata){
+
+	results<-rep(0,4)
+	SMC<-0
+	IS<-0	
+	ISSQ<-0
+	ISSQO<-0
+	
+	bins<-c(stratabyQ,.Machine$double.xmax)
+	binscount<-rep(0,strata)
+	binscountpi<-rep(0,strata)
+	
+	nj<-round(n*qj)
+	nj[match(max(nj),nj)]<-nj[match(max(nj),nj)]+(n-sum(nj))
+	
+
+	for(i in 1:n){
+		Z1<-matrix(rnorm(10),10,1)
+		#Standard Monte Carlo
+			dS1<-C%*%Z1
+			L1<-L(dS1)
+			SMC<-SMC+(ifelse(L1>x,1,0)*(1/n))
+					
+		Z2<-muthetax+chol(Bthetax)%*%Z1
+		#Monte Carlo (IS)
+			dS2<-C%*%Z2
+			L2<-L(dS2)
+			IS<-IS+(ifelse(L2>x,1,0)*likelihood(Z2)*(1/n))
+		kthbins<-tail(binsearch(function(y) bins[y]-(Q(Z2)), range=c(1, length(bins)))$where,1)
+		#Monte Carlo (IS and Stratification)
+			if(binscount[kthbins]<(n/strata)){
+				binscount[kthbins]<-binscount[kthbins]+1
+				ISSQ<-ISSQ+(ifelse(L2>x,1,0)*likelihood(Z2)*(1/n))
+				}
+				else{
+				}
+		#Monte Carlo (IS and Stratification with optimized smaple size for each strata)
+			if(binscountpi[kthbins]<nj[kthbins]){
+				binscountpi[kthbins]<-binscountpi[kthbins]+1
+				ISSQO<-ISSQO+(ifelse(L2>x,1,0)*likelihood(Z2)*(1/nj[kthbins])*(1/strata))
+				}
+				else{
+				}
+		}
+		results[1]<-SMC
+		results[2]<-IS
+
+	
+	while(sum(binscount)<n){
+		Z2<-muthetax+chol(Bthetax)%*%matrix(rnorm(10),10,1)
+		kthbins<-tail(binsearch(function(y) bins[y]-(Q(Z2)), range=c(1, length(bins)))$where,1)
+			#Monte Carlo (IS and Stratification) continue...
+			if(binscount[kthbins]<(n/strata)){
+				binscount[kthbins]<-binscount[kthbins]+1
+				ISSQ<-ISSQ+(ifelse(L(C%*%Z2)>x,1,0)*likelihood(Z2)*(1/n))
+				}
+				else{
+				}
+		#Monte Carlo (IS and Stratification with optimized sample size for each strata) continue...
+			if(binscountpi[kthbins]<nj[kthbins]){
+				binscountpi[kthbins]<-binscountpi[kthbins]+1
+				ISSQO<-ISSQO+(ifelse(L(C%*%Z2)>x,1,0)*likelihood(Z2)*(1/nj[kthbins])*(1/strata))
+				}
+				else{
+				}
+		}
+		results[3]<-ISSQ
+	
+	while(sum(binscountpi)<n){
+		Z2<-muthetax+chol(Bthetax)%*%matrix(rnorm(10),10,1)
+		kthbins<-tail(binsearch(function(y) bins[y]-(Q(Z2)), range=c(1, length(bins)))$where,1)
+		#Monte Carlo (IS and Stratification with optimized sample size for each strata) continue...		
+			if(binscountpi[kthbins]<nj[kthbins]){
+				binscountpi[kthbins]<-binscountpi[kthbins]+1
+				ISSQO<-ISSQO+(ifelse(L(C%*%Z2)>x,1,0)*likelihood(Z2)*(1/nj[kthbins])*(1/strata))
+				}
+				else{
+				}
+		}
+		results[4]<-ISSQO	
+	
+	return(results)
+}
+run(1000,40)
+run(10000,40)
+
+###define a function to generate the replications
+replication<-function(N,n,strata){
+	dum<-c(0,0,0,0)
+	for(i in 1:N){
+		dum<-rbind(dum,run(n,strata))
+	}
+	return(tail(dum,-1))
+}
+
+
+#####
+#####Step5:evaluate the performance of the algorithm
+SAMPLES<-replication(10000,10000,40)
+(ISratio<-var(SAMPLES[,1])/var(SAMPLES[,2]))
+(ISSQratio<-var(SAMPLES[,1])/var(SAMPLES[,3]))
+(ISSQOratio<-var(SAMPLES[,1])/var(SAMPLES[,4]))
+
+n<-10000
+strata<-40
+var(SAMPLES[,1])
+(sum(sqrt(dumvar)*(1/strata)))^2/n
+(theoreticalISSQOratio<-var(SAMPLES[,1])/((sum(sqrt(dumvar)*(1/strata)))^2/n))
+
+
+#####calculating p
+mean(SAMPLES[,2])
+mean(SAMPLES[,3])
+mean(SAMPLES[,4])
+
