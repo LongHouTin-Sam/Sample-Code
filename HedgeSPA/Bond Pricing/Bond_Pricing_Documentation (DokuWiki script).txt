@@ -1,0 +1,700 @@
+
+====== Bond Pricing (Zero Curve) ======
+
+**Author: Long Hou Tin**
+
+\\
+
+\\
+
+\\
+
+
+===== Bond Price =====
+
+Consider at date $t$ a bond that delivers $n$ certain cash flows $C_{t_i}$ at future dates $t_i$ for $i=1,2,…,n$.
+
+| **Time** |  $t_0$  |  $t_1$  |  $t_2$  |  $t_3$  |  ...  |  $t_n$  |
+| **Coupon** |    |  $c_1$  |  $c_2$  |  $c_3$  |  ...  |  $c_n$  |
+| **Principal** |    |    |    |    |    |    $P$    |
+| **Total cash flows** |    |  $C_{t_1}=c_1$  |  $C_{t_2}=c_2$  |  $C_{t_3}=c_3$  |  ...  |  $C_{t_n}=c_n + P$  |
+
+This equation is for fixed income products which cash flows are all known, certain and not subject to prepayment and default risk. The current time is denoted by $t_0$. Consider the future cash flows payment dates $t_i$, $i \in \{1,…,n\}$, with $ 0 < t_0 < t_1 < t_2 < ⋯ < t_i < ⋯ < t_n = T$. The time elapsed until the $i$-th cash flow is due is defined by $\tau_i=t_i-t_0$. The calculation of the coupons $c_1,c_2,...,c_n$ to be delivered on cash flows dates depends on the day count convention and business day convention.  
+
+The value of a treasury coupon bond equals to the value of the package of zero coupon securities (i.e., treasury interest-only or principal-only securities) that replicates its coupon and principal cash flows. The price of a treasury bond can be written as the sum of its future cash flows discounted with the appropriate zero-coupon rate, each with a maturity corresponding to the maturity of each cash flow from the treasury bond to be priced. Continuous interest compounding is used in the following:
+
+$$ P_{t_0}=\sum_{i=1}^{n} C_{t_i} D(t_0,t_i) $$
+$$ D(t_0,t_i) = D(t_0,t_0+\tau_i) = exp\{-r_{t_0,\tau_i} \times \tau_i\} $$
+
+where **$r_{t_0,\tau_i}$** is the continuously compounded annual US Treasury zero-coupon yield, and **$\tau_i$** is the number of years from the cash flow date to the settlement date. $D(t_0,t_i)$ is a discount factor, it is equivalent to the price at date $t_0$ of a zero-coupon bond paying \$1 at date $𝑡_𝑖$ and $𝑟_{𝑡,\tau_𝑖}$ is the associated zero-coupon rate, starting at date $t_0$ for a residual maturity of $\tau_i$, where $0 \leq \tau_𝑖$. The current price depends both on $\tau_1,\tau_2,…,\tau_𝑛$ and the zero-coupon rates $𝑟_{𝑡,\tau_1},𝑟_{𝑡,\tau_2},…,𝑟_{𝑡,\tau_n}$ at time $t_0$.
+
+Reference:
+  *Fabozzi, F. J. (2005). The Handbook of Fixed Income Securities (Seventh Edition). McGraw-Hill.
+  *Gurkaynak, R. S., Sack, B., & Wright, J. H. (2006). The U.S. Treasury Yield Curve: 1961 to the Present.
+
+\\
+
+\\
+
+\\
+
+
+===== Yield to Maturity =====
+
+The yield to maturity (YTM) is the constant interest rate (discount rate) that makes the present value of the bond's future cash flows (coupons and principle) equal to the current bond price, it is sometimes referred to as the Internal Rate of Return (IRR). For a known price $P_{t_0}$, the yield to maturity is the solution $y$ to the equation
+
+$$ P_{t_0} = \sum_{i=1}^{n} (C_{t_i} \times exp\{-y \times \tau_i\}) $$
+
+The equation above can be solved using bisection method. We know that the bond yield is above zero and set zero as a lower bound on the bond yield. We then find an upper bound on the yield by increasing the interest rate until the bond price with this interest rate is negative. We then bisect the interval between the upper and lower until we get a close enough solution. Consider the following example, suppose on the settlement date, there is 4 future cash flow for a US Treasury note that pays coupon at 6% per annum semiannually:
+
+|  **Maturity (years)**  |  **Continuous Compounded US Treasury Zero-Coupon Yield (annual)**  |
+|  0.5  |  5.0%  |
+|  1.0  |  5.8%  |
+|  1.5  |  6.4%  |
+|  2.0  |  6.8%  |
+
+We have 
+$$P_{t_0}=\sum_{i=1}^{4} C_{t_i} D(t_0,t_i)=(3)e^{-0.05 \times 0.5}+(3)e^{-0.058 \times 1.0}+(3)e^{-0.064 \times 1.5}+(3)e^{-0.068 \times 2.0}=98.39$$ 
+
+The yield to maturity for the Treasury note can be found by solving the equation 
+$$98.39 = \sum_{i=1}^{n} [C_{t_i} \times exp(-y \times \tau_i)]=(3)e^{-y \times 0.5}+(3)e^{-y \times 1.0}+(3)e^{-y \times 1.5}+(3)e^{-y \times 2.0}$$
+
+it follows that $y=6.76\%$. 
+
+\\
+
+\\
+
+\\
+
+
+===== Duration and Convexity =====
+
+When holding a bond one would like to know how sensitive the value of the bond is to changes in interest rate. An important component of such calculation is the duration of a bond. The duration of a bond should be interpreted as the weighted average maturity of the bond.
+
+Duration measures the angle of the tangent at the current bond yield. Approximating the change in bond price with duration is thus only a first order approximation. To improve on this approximation we also need to account for the curvature in the relationship between bond price and interest rate. To quantify this curvature we calculate the convexity of a bond.
+
+The duration and convexity can be calculated as follow:
+
+$$ \text{Duration}(t_0) = \sum_{i=1}^{n}(\frac{C_{t_i} D(t_0,t_i)}{P_{t_0}})\tau_i $$
+$$ \text{Convexity}(t_0) = \frac{1}{2}\sum_{i=1}^{n}(\frac{C_{t_i} D(t_0,t_i)}{P_{t_0}})\tau_i^2 $$
+$$ P_{t_0}=\sum_{i=1}^{n} C_{t_i} D(t_0,t_i) $$
+
+Denoted by $P_M$ the observed price of the bond in the market, let $P_M=P_{t_0}+ \Delta P$. Consider a function $f(x)$, Taylor Series expansion suggest that:
+
+$$ f(a+ \Delta x)=\sum_{N=0}^{\infty} \frac{f^{(N)}(a)}{N!} (\Delta x)^N $$
+
+Hence, we have:
+
+$$ \text{Duration}(P_M) = \text{Duration}(P_{t_0}+ \Delta P)=(k)\{ \sum_{N=0}^{\infty} (-\Delta P)^{N} (P_{t_0})^{-(N+1)} \} $$
+$$ \text{where } k=\sum_{i=1}^{n} (C_{t_i} D(t_0,t_i) \tau_i) $$
+
+and
+
+$$ \text{Convexity}(P_M) = \text{Convexity}(P_{t_0}+ \Delta P)=(l)\{ \sum_{N=0}^{\infty} (-\Delta P)^{N} (P_{t_0})^{-(N+1)} \} $$
+$$ \text{where } l=(\frac{1}{2}) \sum_{i=1}^{n} (C_{t_i} D(t_0,t_i) \tau_i^2) $$
+
+\\
+
+\\
+
+\\
+
+
+===== Classical (Fisher-Weil) bond duration-convexity approximation =====
+
+Denote by $\epsilon$ a parallel shift of the spot rate curve, for a small value of $\epsilon$, the relative price change of the bond can be approximated by:
+
+$$ \frac{\Delta P_t}{P_t} \approx -\text{Duration}(t) \times \epsilon + \text{Convexity}(t) \times \epsilon^2 $$
+
+\\
+
+\\
+
+\\
+
+
+===== Accrued Interest and Day Count Conventions =====
+
+All bonds accrue interest on a daily basis, unless bond is purchased for value on a coupon date, it will be traded with interest accrued. The price buyer pay is called the full price, which includes the accrued interest that the seller is entitled to received. The flat price is the full price of the bond minus the accrued interest. The full and flat prices are the same on the coupon date. It is a market practice in US to quote bonds on a clean-price basis.
+
+$$ \text{P}(t)_{full} = \text{P}(t)_{flat} + \text{AI} $$
+$$ \text{P}(t)_{full} = \sum_{i=1}^{n} C_i D(t,t_i) $$
+$$ AI = C \times [\frac{d_{xt}-d_{xc}}{D}] $$
+
+  *$\text{P}(t)_{full}$ is the full price (dirty price) of the bond at time t. 
+  *$\text{P}(t)_{flat}$ is the flat price (clean price) of the bond at time t. 
+  *$AI$ is the accrued interest and $C$ is the annual coupon. 
+  *$d_{xc}$ is the number of days between the ex-dividend date and the coupon payment date. 
+  *$d_{xt}$ is the number of days between the ex-dividend date and the date for the calculation.
+  *$D$ is the day-count base.
+
+Notice that certain class of bonds, for example, US Treasuries and Eurobonds, do not have an ex-dividend period and therefore trade cum dividend right up to the coupon date. Since $d_{xc}$, $d_{xt}$ and $\text{D}$ are all day-based count, the accrued-interest calculation for a bond is dependent on the day-count basis specified for the bond in question. When calculating the accrued interest, the market will use one of the five different conventions (summarized in the table below). For example, US Treasury Bills use the $\text{"Actual/360"}$ convention, and US Treasury Notes and US Treasury Bonds use the $\text{"Actual/Actual"}$ convention. **When determining the number of days in between two dates for accrued interest, include the first date not the second**:
+
+| **Actual/365** | **Assume 365 days per year: ** |
+|  | $AI=Coupon \times (Days/365)$ |
+| **Actual/360** | **Assume 360 days per year: ** |
+|  | $AI=Coupon \times (Days/360)$ |
+| **Actual/Actual** | **365 days for a normal year and 366 days for a leap year: ** |
+|  | $AI=Coupon \times (Days/(2 \times \text{Actual number of days in the interest period}))$ |
+| **30/360** | **Assume 30 days per month and 360 days per year: ** |
+|  | Changed the first date to the 30th if it falls on the 31st of the month. Given that the first date falls on the 30th or the 31st, the second date would be changed to the 30th if it falls on the 31st. |
+| **30E/360** | **Assume 30 days per month and 360 days per year: ** |
+|  | Change the first and second date to 30th if they fall on the 31st. |
+
+\\
+
+The accrued interest day-count basis for selected country bond markets is given in the following table:
+
+|  **Market**  |  **Coupon Frequency**  |  **Day-Count Basis**  |  **Ex-Dividend Period**  |
+|  Australia  |  Semiannual  |  Actual/Actual  |  yes  |
+|  Austria  |  Annual  |  Actual/Actual  |  No  |
+|  Belgium  |  Annual  |  Actual/Actual  |  No  |
+|  Canada  |  Semiannual  |  Actual/Actual  |  No  |
+|  Denmark  |  Annual  |  30E/360  |  Yes  |
+|  Eurobonds  |  Annual  |  30/360  |  No  |
+|  France  |  Annual  |  Actual/Actual  |  No  |
+|  Germany  |  Annual  |  Actual/Actual  |  No  |
+|  Eire  |  Annual  |  Actual/Actual  |  No  |
+|  Italy  |  Annual  |  Actual/Actual  |  No  |
+|  New Zealand  |  Semiannual  |  Actual/Actual  |  Yes  |
+|  Norway  |  Annual  |  Actual/365  |  Yes  |
+|  Spain  |  Annual  |  Actual/Actual  |  No  |
+|  Sweden  |  Annual  |  30E/360  |  Yes  |
+|  Switzerland  |  Annual  |  30E/360  |  No  |
+|  United Kingdom  |  Semiannual  |  Actual/Actual  |  Yes  |
+|  United States  |  Semiannual  |  Actual/Actual  |  No  |
+|  Hong Kong  |  Semiannual  |  Actual/365  |  Yes  |
+|  Japan  |  Semiannual  |  Actual/Actual  |  No  |
+|  China  |  Semiannual  |  Actual/365  |  No  |
+
+\\
+
+The following example illustrate how different day count conventions are used to calculate the accrued interest, consider a 10-year 7% government bond that has coupon payment on $\text{1st June}$ and $\text{1st December}$ each year. What is the accrued interest if the bond is traded for value date on $\text{30th October}$, $\text{31st October}$, and $\text{1st November 1999}$, respectively? There are 183 days in the interest period.
+
+| Day-count Convention | 30th October | 31st October | 1st November |
+| $\text{ACT/365}$ | $7 \times (\frac{151}{365})$ | $7 \times (\frac{152}{365})$ | $7 \times (\frac{153}{365})$ |
+| $\text{ACT/360}$ | $7 \times (\frac{151}{360})$ | $7 \times (\frac{152}{360})$ | $7 \times (\frac{153}{360})$ | 
+| $\text{ACT/ACT}$ | $7 \times (\frac{151}{183}) \times 0.5$ | $7 \times (\frac{152}{183}) \times 0.5$ | $7 \times (\frac{153}{183}) \times 0.5$ |
+| $\text{30/360}$ | $7 \times (\frac{149}{360})$ | $7 \times (\frac{150}{360})$ | $7 \times (\frac{151}{360})$ |
+| $\text{30E/360}$ | $7 \times (\frac{149}{360})$ | $7 \times (\frac{150}{360})$ | $7 \times (\frac{150}{360})$ |
+
+Reference:
+  *Choudhry, M. (2014). Fixed Income Markets: Management, Trading, Hedging (Second Edition). John Wiley & Sons.
+  *Fabozzi, F. J. (2010). Introduction to Fixed Income Analytics (Second Edition). John Wiley & Sons.
+  *Brown, P. J. (1998). Bond Markets: Structures and Yield Calculations. International Securities Market Association.
+  *http://strata.opengamma.io/apidocs/com/opengamma/strata/basics/date/DayCounts.html#ACT_ACT_ICMA
+
+\\
+
+\\
+
+\\
+
+
+===== Business Day Conventions and Market Holidays =====
+The maturity date, the tenor, the payment frequency, the business day convention and the holiday calendar are required in order to compute the cash flow dates. The business day convention determines how to proceed when a date which is relevant for the payment or calculation of interest falls on a non business day. There are five business day conventions:
+
+|  **Actual (or Fixed)**  |  The date in question is maintained, even if it is a non-business day  |
+|  **Following**  |  The event in question is moved to the immediately following business day  |
+|  **Modified Following**  |  The event in question is moved to the immediately following business day, provided that the latter is not in a different calendar month. Should that be the case, the event will be moved forward to the immediately preceding business day instead.  |
+|  **Preceding**  |  The event in question is moved to the immediately preceding business day  |
+|  **Modified preceding**  |  The event in question is moved to the immediately preceding business day, provided that the latter is not in a different calendar month. Should that be the case, the event will be moved to the immediately following business day instead  |
+
+The "Modified Following" business day convention is the most frequently used (e.g., US Treasury).
+
+Refers to the following links for market holidays for major exchanges: 
+  * https://markets.on.nytimes.com/research/markets/holidays/holidays.asp
+  * Explanation on "OBS" followed by holidays names: https://www.marketholidays.com/support-FAQs.aspx#whatOBS
+  * https://www.six-group.com/exchanges/exchange_traded_products/trading/trading_and_settlement_calendar_en.html
+
+\\
+
+Currently we are focusing on the following markets: 
+
+|  United States  |  https://www.investing.com/markets/united-states  |
+|  United Kingdom  |  https://www.investing.com/markets/united-kingdom  |
+|  Germany  |  https://www.investing.com/markets/germany  |
+|  Switzerland  |  https://www.investing.com/markets/switzerland  |
+|  Japan  |  https://www.investing.com/markets/japan  |
+|  Hong Kong  |  https://www.investing.com/markets/hong-kong  |
+|  China  |  https://www.investing.com/markets/china  |
+
+See the following attachment for the full list of government bonds of the respective markets.
+  *{{ ::world governemnt bond tickers.xlsx |}}
+The information is extracted from https://www.investing.com/rates-bonds/world-government-bonds.
+
+\\
+
+\\
+
+\\
+
+
+===== Spot Rates Curve for Different Bond Markets =====
+
+The spot rate curve is a useful benchmark for pricing bonds, refers to the following links for the spot rates data in the corresponding bond markets: 
+
+|  **Market**  |  **Data Source**  |  **Remark**  |
+|  U.S.  |  https://www.quandl.com/data/FED/SVENY-US-Treasury-Zero-Coupon-Yield-Curve  |    |
+|  Euro Area  |  https://www.ecb.europa.eu/stats/financial_markets_and_interest_rates/euro_area_yield_curves/html/index.en.html  |  [1]  |
+|  U.K.  |  https://www.bankofengland.co.uk/statistics/yield-curves  |  [2]  |
+|  Switzerland  |  https://data.snb.ch/en/topics/ziredev#!/cube/rendoblid  |    |
+
+ 
+  *[1]: The euro area is a monetary union of 19 of the 28 European Union (EU) member states which have adopted euro as their common currency and sole legel tender, they are **Germany**, Spain, Portugal, Netherlands, Luxembourg, Italy, France, Finland, etc.
+
+  *[2]: Click "Latest Yield Curve Data", decompress the zip file downloaded, **"GLC Nominal daily data current month.xlsx"** contain the information desired. Yield curve terminology and concepts: https://www.bankofengland.co.uk/-/media/boe/files/statistics/yield-curves/yield-curve-terminology-and-concepts.pdf?la=en&hash=FB7E974604FAE37155E0E649C70B2F2AF3FDD4CF 
+
+Reference:
+  *Bank of International Settlement (2015). Zero-coupon yield curves: technical documentation. (BIS Papers No 25). 
+
+\\
+
+\\
+
+\\
+
+
+===== Yield Spread Measures ===== 
+
+Denoted by $P_{t_0}^{corporate}$ the observed **full price** of a corporate bond, if the market price is quoted as clean price, we must add the corresponding accrued interest to obtain the market full price first. Suppose at time $t_0$, the corporate bond has n future certain cash-flow, $C_{t_1}, C_{t_2}, ..., C_{t_n}$ at time $t_1, t_2, ..., t_n$ respectively. The time elapsed until the $i$-th cash flow is due is defined by $\tau_i=t_i-t_0$. 
+
+\\
+
+**Nominal Spread**:
+
+Traditional yield spread analysis for a non-Treasury security involves calculating the difference between a corporate bond's yield and the yield on a comparable-maturity benchmark Treasury security. Such measure is called the **nominal spread**, it is calculated as follow:
+
+**Step 1:** 
+
+Solve the following equation 
+
+$$P_{t_0}^{corporate} = \sum_{i=1}^{n} C_{t_i} D(t_0,t_i) = \sum_{i=1}^{n} C_{t_i} exp\{-(Y^{corporate}) \times \tau_i\}$$
+
+for $Y^{corporate}$, the yield to maturity of the corporate bond.
+
+**Step 2:** 
+
+First, calculate the price of the comparable-maturity benchmark Treasury security of the corporate bond using the zero curve by: 
+
+$$P_{t_0}^{treasury} = \sum_{i=1}^{n} C_{t_i} D(t_0,t_i) = \sum_{i=1}^{n} C_{t_i} exp\{-r_{t_0,\tau_i} \times \tau_i\}$$ 
+
+where $r_{t_0,\tau_i}$ is the continuously compounded US Treasury Zero-coupon yield. Then, solve the following equation
+
+$$P_{t_0}^{treasury} = \sum_{i=1}^{n} C_{t_i} exp\{-(Y^{treasury}) \times \tau_i\}$$ 
+
+for $Y^{treasury}$, the yield to maturity of the comparable-maturity benchmark Treasury security of the corporate bond.
+
+**Step 3:** 
+
+Denoted by $CS_N$ the nominal spread, we have:
+
+$$CS_N = Y^{corporate} - Y^{treasury}$$
+
+\\
+
+**Zero-volatility Spread:**
+
+One of the drawbacks of the nominal spread is that it fails to account for the term structure of spot rates for both bonds. Let's now consider an alternative spread measure that incorporates the spot rate curve, the **zero-volatility spread**, also referred to as the Z-spread of or static spread. Unlike the nominal spread, it is not a spread at one point on the yield curve. The Z-spread is the spread that will make the present value of the cash flows from the corporate bond, when discounted at the treasury rate plus the spread, equals to the corporate bond's market price plus accrued interest, therefore, Z-spread is calculate as follow:
+
+**Step 1:**
+
+Denoted by $CS_Z$ the Z-spread, $CS_Z$ be can found by solving the following equation using **Newton-Raphson Method**:
+ 
+$$P_{t_0}^{corporate} = \sum_{i=1}^{n} C_{t_i} D(t_0,t_i) = \sum_{i=1}^{n} C_{t_i} exp\{-(r_{t_0,\tau_i}+CS_Z) \times \tau_i\}$$
+
+where $r_{t_0,\tau_i}$ is the continuously compounded US Treasury Zero-coupon yield and $P_{t_0}^{corporate}$ is the observed market price of the corporate bond.
+
+Since the Z-spread is relative to the benchmark Treasury spot rate curve, it represents a spread required by the market to compensate for all the risks of holding the non-Treasury bond versus a Treasury's credit risk, liquidity risk, and the risks associated with any embedded options. 
+
+\\
+
+\\
+
+\\
+
+
+===== Introduction to Newton-Raphson Method =====
+
+Suppose $A=f(x)$ and there is no closed form solution for x.
+
+Newton's method, also called the Newton-Raphson method, is a root-finding algorithm that use the first few terms of the Taylor series of a function $f(x)$ in the vicinity of a suspected root. The Taylor series of $f(x)$ at the point $x=x^{(0)} + \epsilon$ is given by: 
+
+$$ f(x^{(0)} + \epsilon)=\sum_{N=0}^{\infty} \frac{f^{(N)}(x^{(0)})}{N!} (\epsilon)^N $$ 
+
+Keeping terms only to first order,
+
+$$ f(x^{(0)} + \epsilon) \approx f(x^{(0)}) + f^{'}(x^{(0)}) \epsilon $$
+
+which is the equation of the tangent line to the curve at $(x^{(0)},f(x^{(0)}))$, so $(x^{(1)},0)$ is the place where that tangent line intersects the x-axis. We use this approximation to estimate the amount of offset $\epsilon$ needed to land closer to the root starting from the initial guess $x^{(0)}$. Setting $f(x^{(0)}+\epsilon)=0$ and solve for $\epsilon = \epsilon^{(0)}$ gives:
+
+$$\epsilon^{(0)} = -\frac{f(x^{(0)})}{f^{'}(x^{(0)})}$$
+
+which is the first-order adjustment to the root's position. By letting 
+
+$$x^{(1)} = x^{(0)} + \epsilon^{(0)}$$ 
+
+calculate a new $\epsilon^{(1)}$, and so on. The process can be repeated to the $h^{th}$ times, when it converge to a fixed point or $|\text{ } A-f(x^{(h)}) < \omega \text{ }|$, where $\omega$ is a sufficiently small value. Therefore, the root of $f(x)$ can be identified through the following process:
+
+$$  x^{(k+1)} = x^{(k)} - \frac{f(x^{(k)})}{f^{'}(x^{(k)})}  $$
+
+for $k \in \{0,1,2,...,(h-1)\}$ and $|\text{ } A-f(x^{(h)}) < \omega \text{ }|$.
+
+\\
+
+**Eaxmple:**
+
+Suppose we observe:
+$$ P_{t_0}^{corporate} = \sum_{i=1}^{n} C_{t_i} D(t_0,t_i) = \sum_{i=1}^{n} C_{t_i} exp\{-(r_{t_0,\tau_i}+CS_Z) \times \tau_i\} $$
+
+Given that $P_{t_0}^{corporate}$, $C_{t_i}$, $\tau_i$, and $r_{t_0,\tau_i}$ for all $i \in \{1,2,...,n\}$ are all known constants, and the only variable in the equation is $CS_Z$. Define:
+$$f(CS_Z) = \sum_{i=1}^{n} C_{t_i} exp\{-(r_{t_0,\tau_i}+CS_Z) \times \tau_i\} - P_{t_0}^{corporate}$$ 
+
+it follows that: 
+$$ f^{'}(CS_Z) = \sum_{i=1}^{n} (-C_{t_i} \times \tau_i) exp\{-(r_{t_0,\tau_i}+CS_Z) \times \tau_i\} $$
+
+We want to find $CS_Z^{*}$ such that $f(CS_Z^{*})=0$. Denoted by $CS_Z^{(0)}$ our initial guess to $CS_Z^{*}$. By applying the following process:  
+
+$$ CS_Z^{(k+1)} = CS_Z^{(k)} - \frac{f(CS_Z^{(k)})}{f^{'}(CS_Z^{(k)})} $$
+
+for $k=0,1,2,...,(h-1)$ such that $|\text{ } P_{t_0}^{corporate}-f(CS_Z^{(h)}) < \omega \text{ }|$, where $\omega$ is a sufficiently small value. We have $CS_Z^{*} \approx CS_Z^{(h)}$.
+
+\\
+
+The choice of $CS_Z^{(0)}$, our initial guess of the root to the equation, may differs depending on the rating (Moody's, S&P, Fitch) of the corporate bond. Consider **S&P** rating, by observing the credit spread data avalable on FRED on the 16th of January 2020, the following value is suggested in the **US market**:
+|  **Rating Class**  |  **Range**  |  **$CS_Z^{(0)}$ (in basis point)**  |
+|  Investment Grade  |  AAA   |  70  |
+|    |  AA+ ~ AA-  |  77  |
+|    |  A+ ~ A-  |  100  |
+|    |  BBB+ ~ BBB-  |  175  |
+|  Speculative Grade  |  BB+ ~ BB-  |  290  |
+|    |  B+ ~ B-  |  470  |
+|    |  CCC or below  |  1030  |
+
+
+Reference:
+  * ICE BofAML US Corporate AAA Option-Adjusted Spread: https://fred.stlouisfed.org/series/BAMLC0A1CAAA
+  * ICE BofAML US Corporate AA Option-Adjusted Spread: https://fred.stlouisfed.org/series/BAMLC0A2CAA 
+  * ICE BofAML US Corporate A Option-Adjusted Spread: https://fred.stlouisfed.org/series/BAMLC0A3CA
+  * ICE BofAML US Corporate BBB Option-Adjusted Spread: https://fred.stlouisfed.org/series/BAMLC0A4CBBB
+  * ICE BofAML US High Yield BB Option-Adjusted Spread: https://fred.stlouisfed.org/series/BAMLH0A1HYBB
+  * ICE BofAML US High Yield B Option-Adjusted Spread: https://fred.stlouisfed.org/series/BAMLH0A2HYB
+  * ICE BofAML US High Yield CCC or Below Option-Adjusted Spread: https://fred.stlouisfed.org/series/BAMLH0A3HYC
+**Remark:** These data is updated daily and can be download from FRED for free. Hence, the assignment scheme suggested above needs to be updated from time to time. 
+
+\\
+
+An overview of rating scheme of the three major credit rating agency in U.S.: 
+
+{{ ::S-P-Moodys-and-Fitch-rating-systems-and-linear-transformations.png?550x550 |}}
+
+\\
+
+\\
+
+\\
+
+
+===== Data Source for Government Bonds of Certain Region =====
+
+**U.S.:**
+|  Bond information  |  **TreasuryDirect** (https://www.treasurydirect.gov/GA-FI/FedInvest/selectSecurityPriceDate.htm)  |
+|  Historical price  |  **MARTKETS INSIDER** (https://markets.businessinsider.com/bonds/united_states_of_americadl-notes_201821-bond-2021-us9128284b36)  |
+
+**U.K.:**
+|  Bond information  |  **United Kingdom Debt Management Office** (https://pwlb.gov.uk/data/pdfdatareport?reportCode=D1A)  |
+|    |  **London Stock Exchange** (https://www.londonstockexchange.com/exchange/prices-and-markets/retail-bonds/company-summary/GB00BFWFPL34GBGBPUKGT.html?lang=en)  |
+|  Historical price data  |  **MARTKETS INSIDER** (https://markets.businessinsider.com/bonds/grossbritannienls-treasury_stock_201824-bond-2024-gb00bfwfpl34)  |
+
+\\
+
+**Viewing Historical Price Data From MARKETS INSIDER:**
+
+MARKETS INSIDER is a website that provide market data on various securities, the following document detailed the appropriate way to view historical price data of bonds using urls. **However, the price cannot be directly crawled from the website due to some data protection mechanism, consider using APIs instead.** 
+
+  *{{ ::Reverse engineering the tickers in MARKETS INSIDER.docx |}}
+
+\\
+
+\\
+
+\\
+
+
+===== The Deutsche Börse Public Dataset (PDS) project =====
+
+The Deutsche Börse Public Dataset (PDS) project makes near-time data derived from Deutsche Börse's trading systems available to the public for free. This is the first time that such detailed financial market data has been shared freely and continually from the source provider.
+
+This data is provided on a minute-by-minute basis and aggregated from the **Xetra** and **Eurex** engines, which comprise a variety of equities, funds and derivative securities. The PDS contains details for on a per security level, detailing trading activity by minute including the high, low, first and last prices within the time period.
+
+The PDS is created using a cloud provider's infrastructure and made available through their public data repository initiatives, such as the AWS Public Dataset project.
+
+|  **Git Repository**  |  https://github.com/Deutsche-Boerse/dbg-pds  |
+|  **Deutsche Börse Public Dataset**  |  https://registry.opendata.aws/deutsche-boerse-pds/  |
+|  **Eurex API**  |  https://console.developer.deutsche-boerse.com/apis/eurex-public-data-set/1.0.0  |
+|  **Xetra API**  |  https://console.developer.deutsche-boerse.com/apis/xetra-public-data-set/1.0.0  |
+|  **AWS SUMMIT PRESENTATION**  |  {{ ::the Deutsche Börse Public Dataset.pdf |}}  |
+
+\\
+
+\\
+
+\\
+
+
+===== Bond Pricing Examples =====
+
+**Example 1: **
+
+Consider the 7-year US-treasury note (CUSIP number US912828R697):
+  ***Issue Date:** 5/31/2016 (Tuesday)
+  ***Maturity Date:** 5/31/2023 (Wednesday)
+  ***Coupon rate:** 1.625%
+  ***Denomination:** 100
+  ***Settlement Date:** 3/18/2019 (Thursday)
+  ***Day Count Convention:** **Actual/Actual (ISMA)**
+  ***Business Day Convention:** **Modified Following  **
+  ***Next Coupon Date:** 5/31/2019 (Friday)
+
+**Cash Flows Dates (Modified following business day convention):**
+  ***1.** 5/31/2019 (Friday)
+  ***2.** **11/30/2019 (Saturday) -> 11/29/2019 (Friday)**
+  ***3.** **5/31/2020 (Sunday) -> 5/29/2019 (Friday)**
+  ***4.** 11/30/2020 (Monday)
+  ***5.** 5/31/2021 (Monday)
+  ***6.** 11/30/2021 (Tuesday)
+  ***7.** 5/31/2022 (Tuesday)
+  ***8.** 11/30/2022 (Wednesday)
+  ***9.** 5/31/2023 (Wednesday)
+
+Recall that
+
+$$ P_{t_0}=\sum_{i=1}^{n} C_{t_i} D(t_0,t_i) $$ 
+$$ D(t_0,t_i) = D(t_0,t_0+\tau_i) = exp\{-r_{t_0,\tau_i} \times \tau_i\} $$
+
+However, as the continuously compounded U.S. Treasury Zero Coupon Yield is available at maturities of 1,2,...,29,30 years, for cashed flow to be due within one year, we use the bank discount rate to construct the corresponding discount factor, in this case, 
+
+$$ D^{*}(t_0,t_0+\tau_i) =1-r^{*}_{t_0,\tau_i} \times (\text{number of days to maturity}/360) $$
+
+where $ r^{*}_{t_0,\tau_i} $ is the bank discount rate. Since only a discrete set of bank discount rates and US Treasury zero coupon yields. In the case that the maturities of these cash flows does not fall on those discrete points exactly, we can identify the correct rates using interpolation. The information of the future cash flows of the bond can be summarized as follow:
+
+|  **Cash_Date**  |  **Years_From_Settlement**  |  **Cash_Flow**  |  **Rate(%)**  |  **Discount_Factor**  |  **Discount_Cash_Flow**  |
+|  5/31/2019  |  0.202186  |  0.8125  |  bank discount rate: 2.396864193913693  |  0.995073  |  0.808497  |
+|  11/29/2019  |  0.702186  |  0.8125  |  bank discount rate: 2.44  |  0.982649  |  0.798402  |
+|  5/29/2020  |  1.202186  |  0.8125  |  zero rate: 2.4815212513251845  |  0.970608  |  0.788619  |
+|  11/30/2020  |  1.702186  |  0.8125  |  zero rate: 2.4517602850197764  |  0.959125  |  0.779289  |
+|  5/31/2021  |  2.202186  |  0.8125  |  zero rate: 2.4332743214702304  |  0.947825  |  0.770108  |
+|  11/30/2021  |  2.702186  |  0.8125  |  zero rate: 2.4200701077726285  |  0.936698  |  0.761067  |
+|  5/31/2022  |  3.202186  |  0.8125  |  zero rate: 2.4173170974989726  |  0.925513  |  0.751979  |
+|  11/30/2022  |  3.702186  |  0.8125  |  zero rate: 2.4175012453037956  |  0.914388  |  0.742940  |
+|  5/31/2023  |  4.202186  |  100.8125  |  zero rate: 2.4188425159535187  |  0.903351  |  91.069058  |
+
+Therefore, we have:
+$$P^{dirty}_{t_0}=97.26996000$$ 
+$$AI=100 \times (0.01625) \times (\frac{108}{2 \times 184})=0.48214285$$
+$$P^{clean}_{t_0}=P^{dirty}_{t_0}-AI=96.78781714$$
+where the observed price on https://www.treasurydirect.gov/GA-FI/FedInvest/selectSecurityPriceDate.htm is 96.8515625.
+
+
+
+  ## Python code:
+  
+  ## Consider US912828R697
+  # Bond Data: 
+  #     https://markets.businessinsider.com/bonds/united_states_of_americadl-notes_201623-bond-2023-us912828r697
+  # Historical Price Data Source: 
+  #     https://www.treasurydirect.gov/GA-FI/FedInvest/selectSecurityPriceDate.htm
+  # Historial Zero-Coupon Yield Data: 
+  #     https://www.quandl.com/data/FED/SVENY-US-Treasury-Zero-Coupon-Yield-Curve
+  # Historical Treasury Bill Rate Data: 
+  #     https://www.quandl.com/data/USTREASURY/BILLRATES-Treasury-Bill-Rates
+  
+  ## Bond Data: 
+  #     Issue Date: 5/31/2016 (Tuesday)
+  #     Maturity Date: 5/31/2023
+  #     Coupon: 1.625%
+  #     Denomination: 100
+  
+  ## Consider the Price of US912828R697 on the settlemetn date of 3/18/2019:
+  #     clean price = dirty price - AI
+  #     Next coupon date: 5/31/2019 
+  #     9 certain future cash flows in total
+  
+  # Historical Price Data:
+  #     Date:		3/18/2019
+  #     CUSIP:		912828R69
+  #     SECURITY TYPE:	MARKET BASED NOTE
+  #     RATE:		1.625%
+  #     MATURITY DATE:	05/31/2023
+  #     CALL DATE:
+  #     BUY:		96.859375
+  #     SELL:		96.843750
+  #     END OF DAY:	96.812500    
+  
+  # Historial Zero-Coupon Yield Data: 
+  #    SVENYxx refers to the xx year continuously compunded US Treasury zero-coupon yield 
+  #
+  #    quandl.get("FED/SVENY", 
+  #               api_key="DJsNViiWw63DhNuAsDxM", 
+  #               start_date="2019-3-18", 
+  #               end_date="2019-3-18").iloc[0,:]
+  
+  # Historical Treasury Bill Rate Data (Bank Discount Rate): 
+  #
+  #    quandl.get("USTREASURY/BILLRATES", 
+  #               authtoken="DJsNViiWw63DhNuAsDxM", 
+  #               start_date="2019-3-18", 
+  #               end_date="2019-3-18").iloc[0,:][np.array([i%2==0 for i in range(10)])]
+  
+  
+  import quandl
+  import numpy as np, pandas as pd
+  import matplotlib.pyplot as plt
+  from scipy.interpolate import PchipInterpolator
+  from datetime import datetime, date, timedelta
+  from dateutil.relativedelta import relativedelta
+  
+  
+  ##
+  ## Step 1: Basic information of the Bond
+  issue=date(2016,5,31)
+  maturity=date(2023,5,31)
+  settlement=date(2019,3,18)
+  face=100
+  cRate=(1.625/100)
+  N=(maturity.year-issue.year)*2
+  rawDate=[issue+relativedelta(months=i*6) for i in range(1,1+N,1)] 
+  # layout all the cash date of the US Treasury from issue to maturity
+  
+  
+  ##
+  ## Step 2: Taking care of business day convention
+  # For US Treasury, we use modified following business day convention
+  indi=[x.weekday() for x in rawDate]
+  for i in range(len(indi)):
+      if indi[i]==5:
+          temp=rawDate[i]+relativedelta(days=2)
+          if (temp).month==rawDate[i].month:
+              rawDate[i]=temp
+          else:
+              rawDate[i]=rawDate[i]-relativedelta(days=1)
+      if indi[i]==6:
+          temp=rawDate[i]+relativedelta(days=1)
+          if (temp).month==rawDate[i].month:
+              rawDate[i]=temp
+          else:
+              rawDate[i]=rawDate[i]-relativedelta(days=2)
+  
+  
+  ##
+  ## Step 3: Take care of day count convention, calculating accried interest and cash flows
+  # For US Treasury Note/Bond, we use ACT/ACT (ISMA) day count conventions,
+  # That is, the 1.625% 7 year US Treasury Note in a M day (could be 181, 182, 183, or 184 
+  #     depending on the start date and end date of the coupon period) accrues interest 
+  #     at a daily rate of (1.625%)*(1/(M*2))
+  # Under this day coupon convention, the coupon of a whole coupon period is garenteed 
+  #     to be face*(cRate/2), caution need to be taken only on the Accrued interest.
+  cashDate=[i for i in rawDate if settlement<i]
+  cashFlow=(np.repeat(face*cRate/2,len(cashDate))+np.repeat([0,100],[len(cashDate)-1,1])).tolist()
+  DFS=[(i-settlement).days for i in cashDate]
+  M=(cashDate[0]-(cashDate[0]-relativedelta(months=6))).days
+  AI=(face*cRate/(2*M))*(M-DFS[0]) 
+  
+  
+  ##
+  ## Step 4: Build a data frame to store the information of the future cash flows
+  cashDF=pd.DataFrame({"Cash_Date":cashDate,"Days_From_Settlement":DFS,"Cash_Flow":cashFlow})
+  
+  
+  ##
+  ## Step 5: Decide how to discount the cash flow:
+  # Pt0=np.dot(C,D), where C is the cash flow vector, D is the discounted rate vector
+  #     Always use continous compounding to discount the cash flow if the continously 
+  #     compunded US Treaury Zero-Coupon Yields is avaliable 
+  # We have direct access to the following rates from quandl: 
+  #     i-year continuously compounded  US Treasury Zero-Coupon Yield (annual) for i=1,2,...,30
+  #     j-week US Treasury Bill Rates (bank discount rate) for k=4,8,13,26,52
+  # Since extrapolation is not encouraged, we use the following discounting scheme:
+  # Denoted by ti the time from settlement to the cash event date:
+  #     if ti > 1 year: Di=exp\{-ri*ti\}, where ri is the corresponding continuouly 
+  #                     compounded US Treasuty Zero-Coupon Yield (annual), ti is time in year  
+  #     if 4 week<=ti<=56 week: Di=1-ri*(ti/360), where ri is the corresponding 
+  #                             bank discount rate, ti is time in days
+  #     if ti<4 week, use overnight fed fund rate...
+  
+  bdr=quandl.get("USTREASURY/BILLRATES", 
+                 authtoken="DJsNViiWw63DhNuAsDxM", 
+                 start_date="2019-3-18", 
+                 end_date="2019-3-18").iloc[0,:][np.array([i%2==0 for i in range(10)])]
+  bdr_x=[4*7,8*7,13*7,26*7,52*7]
+  plt.figure(figsize=(6.5, 4))
+  plt.plot(bdr_x,bdr) # visualization
+  def BD(jk):
+      # jk is some array
+      return(PchipInterpolator(bdr_x,bdr,extrapolate=False)(jk))
+    
+  zr=quandl.get("FED/SVENY", 
+                api_key="DJsNViiWw63DhNuAsDxM", 
+                start_date="2019-3-18", 
+                end_date="2019-3-18").iloc[0,:]
+  zr_x=[((settlement+relativedelta(years=i))-settlement).days for i in range(1,30+1,1)]
+  plt.figure(figsize=(6.5, 4))
+  plt.plot(zr_x,zr) # visualization
+  def ZR(jk):
+      # jk is some array
+      return(PchipInterpolator(zr_x,zr,extrapolate=False)(jk))
+  
+  YFS=[DFS[0]/zr_x[0]+0.5*i for i in range(len(cashDate))]
+  if(settlement==cashDate[0]-relativedelta(months=6)):
+      rate=["bank discount rate"]+["zero rate"]*(len(cashDate)-1)
+      bd_t=np.array(DFS[0])
+      bd=BD(bd_t)
+      zr_t=YFS[1:]
+      zr=ZR(np.array(DFS[1:]))
+  else:
+      rate=["bank discount rate"]*2+["zero rate"]*(len(cashDate)-2)
+      bd_t=np.array(DFS[:2])
+      bd=BD(bd_t)
+      zr_t=YFS[2:]
+      zr=ZR(np.array(DFS[2:]))
+  discountFactor=(1-(bd/100)*(bd_t/360)).tolist()+(np.exp(-(zr/100)*np.array(zr_t))).tolist()
+  rate=list(map(lambda x: ": ".join(x), zip(rate,map(str,bd.tolist()+zr.tolist()))))
+  
+       
+  ##
+  ## Step 6: Integrate the information into the data frame and calculate discounted cash flows
+  cashDF["Years_From_Settlement"]=YFS
+  cashDF["Rate"]=rate
+  cashDF["Discount_Factor"]=discountFactor
+  cashDF["Discount_Cash_Flow"]=np.array(cashDF["Cash_Flow"])*np.array(cashDF["Discount_Factor"])
+  cashDF=cashDF.reindex(columns=["Cash_Date",
+                                 "Days_From_Settlement",
+                                 "Years_From_Settlement",
+                                 "Cash_Flow", 
+                                 "Rate", 
+                                 "Discount_Factor", 
+                                 "Discount_Cash_Flow"])
+  Pt0_dirty=sum(cashDF["Discount_Cash_Flow"])
+  Pt0_clean=Pt0_dirty-AI # Notice that it is a market practice in US to quote the clean price  
+  
+  buy=96.859375
+  sell=96.843750
+  benchmark=(buy+sell)/2
+  
+  np.abs(Pt0_clean-benchmark)
+  
+\\
+
+Data Source:
+  *US Treasury Data: https://markets.businessinsider.com/bonds/united_states_of_americadl-notes_201623-bond-2023-us912828r697
+  *US Treasury Data: https://finra-markets.morningstar.com/BondCenter/BondDetail.jsp?ticker=C653515&symbol=
+  *US Treasury Historical Price: https://www.treasurydirect.gov/GA-FI/FedInvest/selectSecurityPriceDate.htm
+  *US Treasury Zero-Coupon Yield: https://www.quandl.com/data/FED/SVENY-US-Treasury-Zero-Coupon-Yield-Curve
+  *US Treasury Bill Rates: https://www.quandl.com/data/USTREASURY/BILLRATES-Treasury-Bill-Rates
+
+\\
+
+\\
+
+\\
